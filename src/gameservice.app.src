@@ -1,0 +1,17 @@
+{application, gameservice,
+  [
+    {description, ""},
+    {vsn, "1"},
+    {registered, []},
+    {modules, []},
+    {applications, [
+      kernel,
+      stdlib,
+      mongodb,
+      seaconfig,
+      seautils,
+      cowboy
+    ]},
+    {mod, {gameservice_app, []}},
+    {env, []}
+  ]}.
