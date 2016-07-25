@@ -12,8 +12,8 @@ POST request with body JSON:
     }
 Where `vsn` is a **string** user's client version.  
 `uid` is a **string** containing user id, by which this user can be found.  
+`ttl` is a time, game is published (seconds).  
 `rules` is a list of objects with **string** key and **string** value. Is **optional**.  
-`ttl` is a time, game is published. Is **optional**.  
 `private` is a **boolean**. If set to true - other users can join this game only by game id.  
 
 Success reply:  
