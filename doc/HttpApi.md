@@ -6,14 +6,14 @@ POST request with body JSON:
     {
         "vsn" : "ClientVersion",
         "uid" : "UserId",
-        "rules" : [...{"RuleKey" : "RuleValue"}...],
+        "rules" : {"RuleKey" : "RuleValue"...},
         "ttl" : "GamePublishingTTL",
         "private" : true|false
     }
 Where `vsn` is a **string** user's client version.  
 `uid` is a **string** containing user id, by which this user can be found.  
 `ttl` is a time, game is published (seconds).  
-`rules` is a list of objects with **string** key and **string** value. Is **optional**.  
+`rules` is an object with **string** keys and **string**|**integer**|**boolean** values. Is **optional**.  
 `private` is a **boolean**. If set to true - other users can join this game only by game id.  
 
 Success reply:  
@@ -46,7 +46,9 @@ Success reply:
 
     {
         "result" : true,
-        "code" : 0
+        "code" : 0,
+        "uid" : UID,
+        "rules" : {"RuleKey" : "RuleValue"...}
     }
     
 Error reply:

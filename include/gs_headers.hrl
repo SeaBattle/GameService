@@ -13,6 +13,7 @@
 -define(UID_HEAD, <<"uid">>).
 -define(RULES_HEAD, <<"rules">>).
 -define(TTL_HEAD, <<"ttl">>).
+-define(ENEMY_HEAD, <<"enemy">>).
 
 -define(RESULT_HEAD, <<"result">>).
 -define(CODE_HEAD, <<"code">>).

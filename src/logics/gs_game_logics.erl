@@ -21,8 +21,13 @@ create_game(Package = #{?VSN_HEAD := Vsn, ?UID_HEAD := Uid, ?TTL_HEAD := TTL}) -
   {ok, <<"OK">>} = gs_cache_man:add_game(Gid, Vsn, Uid, Rules, TTL),
   #{?RESULT_HEAD => true, ?CODE_HEAD => ?OK, ?GAME_ID_HEAD => Gid}.
 
-accept_game(#{?GAME_ID_HEAD := GameId, ?VSN_HEAD := Vsn, ?UID_HEAD := Uid}) ->
-  ok.
+accept_game(#{?GAME_ID_HEAD := GameId, ?VSN_HEAD := _Vsn, ?UID_HEAD := Uid}) ->
+  case gs_cache_man:set_lock(GameId, Uid) of
+    {true, #{?UID_HEAD := Host, ?RULES_HEAD := Rules}} ->  %lock captured  %TODO check client version support rules (before deleting from list).
+      #{?RESULT_HEAD => true, ?CODE_HEAD => ?OK, ?UID_HEAD => Host, ?RULES_HEAD => Rules};
+    {false, Reason} ->  %game expired or started
+      #{?RESULT_HEAD => false, ?CODE_HEAD => Reason}
+  end.
 
 fast_play(#{?VSN_HEAD := Vsn, ?UID_HEAD := Uid, ?TTL_HEAD := TTL}) ->
   ok.

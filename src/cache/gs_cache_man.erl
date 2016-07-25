@@ -9,11 +9,12 @@
 -module(gs_cache_man).
 -author("tihon").
 
+-include("gc_codes.hrl").
 -include("gs_headers.hrl").
 -include_lib("seaconfig/include/sc_headers.hrl").
 
 %% API
--export([add_game/5, init/0]).
+-export([add_game/5, init/0, set_lock/2]).
 
 init() ->
   ok = application:load(eredis_cluster),
@@ -33,9 +34,26 @@ init() ->
   {ok, binary()} | {error, binary() | atom()}.
 add_game(Gid, Vsn, Uid, Rules, TTL) ->
   {ok, _} = eredis_cluster:q([<<"HSETNX">>, Gid, ?VSN_HEAD, Vsn]),
-  {ok, _} = eredis_cluster:q([<<"HSETNX">>, Gid, ?UID_HEAD, Uid]),
-  {ok, _} = eredis_cluster:q([<<"HSETNX">>, Gid, ?RULES_HEAD, term_to_binary(Rules)]),
+  {ok, _} = eredis_cluster:q([<<"HMSET">>, Gid, ?UID_HEAD, Uid, ?RULES_HEAD, term_to_binary(Rules)]),
   eredis_cluster:q([<<"EXPIRE">>, Gid, TTL]).
+
+-spec set_lock(binary(), binary()) -> {false, integer()} | {true, map()}.
+set_lock(Gid, EnemyUid) ->
+  case eredis_cluster:q([<<"HSETNX">>, Gid, ?ENEMY_HEAD, EnemyUid]) of
+    {ok, <<"1">>} ->  %lock captured
+      {ok, Result} = eredis_cluster:q([<<"HGETALL">>, Gid]),
+      {ok, <<"OK">>} = eredis_cluster:q([<<"DEL">>, Gid]),  %delete game
+      Map = result_to_map(Result, #{}),
+      case maps:is_key(?UID_HEAD, Map) of
+        true -> %game valid - return it
+          {true, Map};
+        false ->  %no game (it was just enemy, set by lock)
+          {false, ?GAME_NOT_AVAILABLE}
+      end;
+    {ok, <<"0">>} ->  %game expired or started
+      {false, ?GAME_STARTED}
+  end.
+
 
 %% @private
 form_init_nodes(BinHosts) ->
@@ -45,3 +63,8 @@ form_init_nodes(BinHosts) ->
       [Host, Port] = binary:split(Host, <<":">>),
       [{binary_to_list(Host), binary_to_integer(Port)} | A]
     end, [], Hosts).
+
+%% @private
+result_to_map([], Acc) -> Acc;
+result_to_map([Key, Value | Rest], Acc) ->
+  result_to_map(Rest, Acc#{Key => Value}).
