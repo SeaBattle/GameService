@@ -17,7 +17,7 @@
 -export_type([game_type/0]).
 
 %% API
--export([create_game/1, accept_game/1, fast_play/1]).
+-export([create_game/1, join_game/1, fast_play/1]).
 
 create_game(Package = #{?VSN_HEAD := Vsn, ?UID_HEAD := Uid, ?TTL_HEAD := TTL}) ->
   Type = get_game_type(Package),
@@ -26,7 +26,7 @@ create_game(Package = #{?VSN_HEAD := Vsn, ?UID_HEAD := Uid, ?TTL_HEAD := TTL}) -
   {ok, <<"OK">>} = gs_cache_man:add_game(Gid, Vsn, Uid, Rules, TTL, Type),
   #{?RESULT_HEAD => true, ?CODE_HEAD => ?OK, ?GAME_ID_HEAD => Gid}.
 
-accept_game(#{?GAME_ID_HEAD := GameId, ?VSN_HEAD := _Vsn, ?UID_HEAD := Uid}) ->
+join_game(#{?GAME_ID_HEAD := GameId, ?VSN_HEAD := _Vsn, ?UID_HEAD := Uid}) ->
   Type = get_type_from_id(GameId),
   case gs_cache_man:set_lock(GameId, Type, Uid) of
     {true, #{?UID_HEAD := Host, ?RULES_HEAD := Rules}} ->  %lock captured  %TODO check client version support rules (before deleting from list).
@@ -39,7 +39,7 @@ fast_play(Package = #{?VSN_HEAD := Vsn, ?UID_HEAD := Uid, ?TTL_HEAD := TTL}) ->
   case gs_cache_man:get_random_game(?ORDINARY_GAME, Uid) of
     {true, #{?UID_HEAD := Host, ?RULES_HEAD := Rules}} ->  %TODO check client version support rules (before deleting from list).
       #{?RESULT_HEAD => true, ?CODE_HEAD => ?OK, ?UID_HEAD => Host, ?RULES_HEAD => Rules};
-    {false, ?GAME_NOT_AVAILABLE} ->
+    {false, ?GAME_NOT_AVAILABLE} -> %no ready games to join. Should create new.
       Gid = generate_id(Vsn, ?ORDINARY_GAME),
       Rules = get_rules(Package),
       {ok, <<"OK">>} = gs_cache_man:add_game(Gid, Vsn, Uid, Rules, TTL, ?ORDINARY_GAME),

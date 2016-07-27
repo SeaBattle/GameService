@@ -29,15 +29,20 @@ reply(Req, 200, Data) ->
 
 
 %% @private
-act(<<"/register/", _/binary>>, Req, _) ->
+act(<<"/create/", _/binary>>, Req, _) ->
   {ok, Body, Req2} = cowboy_req:body(Req, [{length, infinity}]),
   Decoded = jsone:decode(Body, [{object_format, map}]),
-  Result = su_user_logic:register(Decoded),
+  Result = gs_game_logics:create_game(Decoded),
   reply(Req2, 200, jsone:encode(Result));
-act(<<"/login/", _/binary>>, Req, _) ->
+act(<<"/connect/", _/binary>>, Req, _) ->
   {ok, Body, Req2} = cowboy_req:body(Req, [{length, infinity}]),
   Decoded = jsone:decode(Body, [{object_format, map}]),
-  Result = su_user_logic:login(Decoded),
+  Result = gs_game_logics:join_game(Decoded),
+  reply(Req2, 200, jsone:encode(Result));
+act(<<"/play/", _/binary>>, Req, _) ->
+  {ok, Body, Req2} = cowboy_req:body(Req, [{length, infinity}]),
+  Decoded = jsone:decode(Body, [{object_format, map}]),
+  Result = gs_game_logics:fast_play(Decoded),
   reply(Req2, 200, jsone:encode(Result));
 act(_, Req, _) ->
   reply(Req, 404).

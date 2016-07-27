@@ -19,7 +19,7 @@ init_http_handler() ->
     [
       {'_',
         [
-          {'_', su_http_handler, []}
+          {'_', gs_http_handler, []}
         ]
       }
     ]),
