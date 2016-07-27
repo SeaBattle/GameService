@@ -12,5 +12,6 @@
 
 -define(GAME_STARTED, 100).       %other player just joined and game starts
 -define(GAME_NOT_AVAILABLE, 101). %no game for such GID was found
+-define(WAITING_FOR_CONNECT, 102).  %fast play is not able to find ready game, so it creates game and wait for connection
 
 -define(SERVER_ERROR, 500).

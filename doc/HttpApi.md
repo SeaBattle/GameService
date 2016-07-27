@@ -72,8 +72,8 @@ POST request with body JSON:
     }
 Where `vsn` is a **string** user's client version.  
 `uid` is a **string** containing user id, by which this user can be found.  
-`rules` is a list of objects with **string** key and **string** value. Is **optional**.  
-`ttl` is a time, game is published. Is **optional**.    
+`ttl` is a time, game is published.  
+`rules` is a list of objects with **string** key and **string** value. Is **optional**.      
 
 Success reply:  
 
@@ -81,37 +81,16 @@ Success reply:
         "result" : true,
         "game_id" : "GameId",
         "uid" : : "HostUId",
+        "rules" : [...{"RuleKey" : "RuleValue"}...],
         "code" : 0
     }
-    
-Error reply:
-
-    {
-        "result" : false,
-        "code" : 500
-    }
-
-### List games
-**/list** get a list of all created (and supported by client) games.
-POST request with body JSON:
-
-    {
-        "vsn" : "ClientVersion",
-        "rules" : [...{"RuleKey" : "RuleValue"}...],
-        "limit" : "LimitResults"
-    }
-Where `vsn` is a **string** user's client version.  
-`limit` is an **integer** value, limiting fetched results.  
-`rules` is a list of objects with **string** key and **string** value. Is **optional**.  
-
-Success reply:  
+Or, when there is no ready game - server creates game and waits for connection of other player:
 
     {
         "result" : true,
-        "games" : [{"game_id" : "GameId", "uid" : "CreatedUserId"}],
-        "next_list" : true
+        "game_id" : "GameId",
+        "code" : 102
     }
-Where `next_list` **boolean** means, that there are more, than limit games.
     
 Error reply:
 

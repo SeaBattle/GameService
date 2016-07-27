@@ -13,7 +13,7 @@
 -export([get_default_rules/1]).
 
 -spec get_default_rules(binary()) -> proplists:proplist().
-get_default_rules(_) ->   %TODO store rules in cache!
+get_default_rules(_) ->   %TODO store rules in cache! (and use key-set for them without sending and caching plain rules)
   [
     {<<"shipNum">>, 10},
     {<<"ship1">>, 4},

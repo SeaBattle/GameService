@@ -14,6 +14,11 @@
 -define(RULES_HEAD, <<"rules">>).
 -define(TTL_HEAD, <<"ttl">>).
 -define(ENEMY_HEAD, <<"enemy">>).
+-define(PRIVATE_HEAD, <<"private">>).
+-define(LIMIT_HEAD, <<"limit">>).
 
 -define(RESULT_HEAD, <<"result">>).
 -define(CODE_HEAD, <<"code">>).
+
+-define(PRIVATE_GAME, <<"private">>).
+-define(ORDINARY_GAME, <<"ordinary">>).

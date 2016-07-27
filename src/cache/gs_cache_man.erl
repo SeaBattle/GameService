@@ -13,8 +13,11 @@
 -include("gs_headers.hrl").
 -include_lib("seaconfig/include/sc_headers.hrl").
 
+-define(ORDINARY_GAMES_DB, 0).
+-define(PRIVATE_GAMES_DB, 1).
+
 %% API
--export([add_game/5, init/0, set_lock/2]).
+-export([add_game/6, init/0, set_lock/3, get_random_game/2]).
 
 init() ->
   ok = application:load(eredis_cluster),
@@ -30,19 +33,24 @@ init() ->
   application:set_env(eredis_cluster, overflow_check_period, PoolOverflowCheck),
   application:ensure_all_started(eredis_cluster).
 
--spec add_game(binary(), binary(), binary(), proplists:proplist(), integer()) ->
+-spec add_game(binary(), binary(), binary(), proplists:proplist(), integer(), gs_game_logics:game_type()) ->
   {ok, binary()} | {error, binary() | atom()}.
-add_game(Gid, Vsn, Uid, Rules, TTL) ->
-  {ok, _} = eredis_cluster:q([<<"HSETNX">>, Gid, ?VSN_HEAD, Vsn]),
-  {ok, _} = eredis_cluster:q([<<"HMSET">>, Gid, ?UID_HEAD, Uid, ?RULES_HEAD, term_to_binary(Rules)]),
-  eredis_cluster:q([<<"EXPIRE">>, Gid, TTL]).
+add_game(Gid, Vsn, Uid, Rules, TTL, GameType) ->
+  Db = select_database(GameType),
+  Result = run_on_proper_base(Db,
+    [<<"HMSET">>, Gid, ?VSN_HEAD, Vsn, ?UID_HEAD, Uid, ?RULES_HEAD, term_to_binary(Rules)]),
+  case Result of
+    {ok, <<"OK">>} -> run_on_proper_base(Db, [<<"EXPIRE">>, Gid, TTL]);
+    Error -> Error
+  end.
 
--spec set_lock(binary(), binary()) -> {false, integer()} | {true, map()}.
-set_lock(Gid, EnemyUid) ->
-  case eredis_cluster:q([<<"HSETNX">>, Gid, ?ENEMY_HEAD, EnemyUid]) of
+-spec set_lock(binary(), gs_game_logics:game_type(), binary()) -> {false, integer()} | {true, map()}.
+set_lock(Gid, Type, EnemyUid) ->
+  Db = select_database(Type),
+  case run_on_proper_base(Db, [<<"HSETNX">>, Gid, ?ENEMY_HEAD, EnemyUid]) of
     {ok, <<"1">>} ->  %lock captured
-      {ok, Result} = eredis_cluster:q([<<"HGETALL">>, Gid]),
-      {ok, <<"OK">>} = eredis_cluster:q([<<"DEL">>, Gid]),  %delete game
+      {ok, Result} = run_on_proper_base(Db, [<<"HGETALL">>, Gid]),
+      {ok, <<"OK">>} = run_on_proper_base(Db, [<<"DEL">>, Gid]),  %delete game
       Map = result_to_map(Result, #{}),
       case maps:is_key(?UID_HEAD, Map) of
         true -> %game valid - return it
@@ -54,6 +62,21 @@ set_lock(Gid, EnemyUid) ->
       {false, ?GAME_STARTED}
   end.
 
+-spec get_random_game(gs_game_logics:game_type(), binary()) -> {false, integer()} | {true, map()}.
+get_random_game(Type, Uid) ->
+  case run_on_proper_base(Type, [<<"RANDOMKEY">>]) of
+    {ok, undefined} -> {false, ?GAME_NOT_AVAILABLE};
+    {ok, Key} ->  %game found - try to capture the lock
+      case set_lock(Key, Type, Uid) of  %TODO will this be slow? May be some atomic locking?
+        {false, _} -> get_random_game(Type, Uid);
+        {true, Game} -> {true, Game}
+      end
+  end.
+
+
+%% @private
+run_on_proper_base(Db, Cmd) ->
+  eredis_cluster:transaction([["SELECT", Db], Cmd]).
 
 %% @private
 form_init_nodes(BinHosts) ->
@@ -66,5 +89,11 @@ form_init_nodes(BinHosts) ->
 
 %% @private
 result_to_map([], Acc) -> Acc;
+result_to_map([?RULES_HEAD, Value | Rest], Acc) ->
+  result_to_map(Rest, Acc#{?RULES_HEAD => binary_to_term(Value)});
 result_to_map([Key, Value | Rest], Acc) ->
   result_to_map(Rest, Acc#{Key => Value}).
+
+%% @private
+select_database(?PRIVATE_GAME) -> ?PRIVATE_GAMES_DB;
+select_database(?ORDINARY_GAME) -> ?PRIVATE_GAMES_DB.
