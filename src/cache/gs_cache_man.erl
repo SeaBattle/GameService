@@ -20,7 +20,7 @@
 -export([add_game/6, init/0, set_lock/3, get_random_game/2]).
 
 init() ->
-  ok = application:load(eredis_cluster),
+
   Nodes = sc_conf_holder:get_conf(?CACHE_HOSTS_CONF, <<"127.0.0.1:30001">>),
   PoolSize = sc_conf_holder:get_conf(?CACHE_SIZE_CONF, 5),
   PoolOverflow = sc_conf_holder:get_conf(?CACHE_OVERFLOW_CONF, 100),

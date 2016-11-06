@@ -7,10 +7,10 @@
     {applications, [
       kernel,
       stdlib,
-      mongodb,
       seaconfig,
       seautils,
-      cowboy
+      cowboy,
+      mnesia
     ]},
     {mod, {gameservice_app, []}},
     {env, []}
