@@ -10,7 +10,7 @@
 -author("tihon").
 
 -include("gs_headers.hrl").
--include("gc_codes.hrl").
+-include("gs_codes.hrl").
 
 -type game_type() :: ?PRIVATE_GAME | ?ORDINARY_GAME.
 

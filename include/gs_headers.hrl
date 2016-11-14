@@ -22,3 +22,11 @@
 
 -define(PRIVATE_GAME, <<"private">>).
 -define(ORDINARY_GAME, <<"ordinary">>).
+
+-record(gc_game,
+{
+  gid :: binary(),
+  uid :: binary(),
+  rules :: binary(),
+  version :: binary()
+}).

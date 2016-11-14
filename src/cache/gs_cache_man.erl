@@ -9,29 +9,19 @@
 -module(gs_cache_man).
 -author("tihon").
 
--include("gc_codes.hrl").
+-include("gs_codes.hrl").
 -include("gs_headers.hrl").
--include_lib("seaconfig/include/sc_headers.hrl").
+-include("gs_conf_headers.hrl").
 
--define(ORDINARY_GAMES_DB, 0).
--define(PRIVATE_GAMES_DB, 1).
+-define(WAIT_FOR_TABLES, 60000).
 
 %% API
 -export([add_game/6, init/0, set_lock/3, get_random_game/2]).
 
 init() ->
-
-  Nodes = sc_conf_holder:get_conf(?CACHE_HOSTS_CONF, <<"127.0.0.1:30001">>),
-  PoolSize = sc_conf_holder:get_conf(?CACHE_SIZE_CONF, 5),
-  PoolOverflow = sc_conf_holder:get_conf(?CACHE_OVERFLOW_CONF, 100),
-  PoolOverflowTTL = sc_conf_holder:get_conf(?CACHE_OVERFLOW_TTL_CONF, 5000),
-  PoolOverflowCheck = sc_conf_holder:get_conf(?CACHE_OVERFLOW_CHECK_CONF, 1000),
-  application:set_env(eredis_cluster, init_nodes, form_init_nodes(Nodes)),
-  application:set_env(eredis_cluster, pool_size, PoolSize),
-  application:set_env(eredis_cluster, pool_max_overflow, PoolOverflow),
-  application:set_env(eredis_cluster, overflow_ttl, PoolOverflowTTL),
-  application:set_env(eredis_cluster, overflow_check_period, PoolOverflowCheck),
-  application:ensure_all_started(eredis_cluster).
+  GameString = seaconfig:get_value(?GAMES),
+  GameList = string:tokens(GameString, ","),
+  create_tables(GameList).
 
 -spec add_game(binary(), binary(), binary(), proplists:proplist(), integer(), gs_game_logics:game_type()) ->
   {ok, binary()} | {error, binary() | atom()}.
@@ -75,25 +65,57 @@ get_random_game(Type, Uid) ->
 
 
 %% @private
-run_on_proper_base(Db, Cmd) ->
-  eredis_cluster:transaction([["SELECT", Db], Cmd]).
+create_tables(GameList) ->
+  AllNodes = [node() | nodes()],
+  mnesia:change_config(extra_db_nodes, AllNodes),
+  lists:foreach(fun(Game) -> ok = create_table(Game, AllNodes) end, GameList).
 
 %% @private
-form_init_nodes(BinHosts) ->
-  Hosts = binary:split(BinHosts, <<",">>, [global]),
-  lists:foldl(
-    fun(Host, A) ->
-      [Host, Port] = binary:split(Host, <<":">>),
-      [{binary_to_list(Host), binary_to_integer(Port)} | A]
-    end, [], Hosts).
+create_table(Game, Nodes) ->
+  ProperName = string:strip(Game),
+  PrivateGameName = get_table_name(ProperName, true),
+  PublicGameName = get_table_name(ProperName, false),
+  ok = do_create_table(PrivateGameName, get_opts(Nodes)),
+  ok = do_create_table(PublicGameName, get_opts(Nodes)).
 
 %% @private
-result_to_map([], Acc) -> Acc;
-result_to_map([?RULES_HEAD, Value | Rest], Acc) ->
-  result_to_map(Rest, Acc#{?RULES_HEAD => binary_to_term(Value)});
-result_to_map([Key, Value | Rest], Acc) ->
-  result_to_map(Rest, Acc#{Key => Value}).
+-spec do_create_table(atom(), proplists:proplist()) -> ok | {error, any()}.
+do_create_table(Table, Options) ->
+  CurrentNode = node(),
+  %% ensure table exists
+  case mnesia:create_table(Table, Options) of
+    {atomic, ok} -> ok;
+    {aborted, {already_exists, TableName}} ->      %% table already exists, try to add current node as copy
+      add_table_copy_to_current_node(TableName);
+    {aborted, {already_exists, TableName, CurrentNode}} ->      %% table already exists, try to add current node as copy
+      add_table_copy_to_current_node(TableName);
+    Other -> {error, Other}
+  end.
 
 %% @private
-select_database(?PRIVATE_GAME) -> ?PRIVATE_GAMES_DB;
-select_database(?ORDINARY_GAME) -> ?PRIVATE_GAMES_DB.
+add_table_copy_to_current_node(TableName) ->
+  Node = node(),
+  mnesia:wait_for_tables([TableName], ?WAIT_FOR_TABLES),  %% wait for table
+  case mnesia:add_table_copy(TableName, Node, ram_copies) of  %% add copy
+    {atomic, ok} -> ok;
+    {aborted, {already_exists, TableName}} -> ok;
+    {aborted, {already_exists, TableName, Node}} -> ok;
+    {aborted, Reason} -> {error, Reason}
+  end.
+
+%% @private
+-spec get_table_name(binary(), boolean()) -> atom().
+get_table_name(Game, true) ->
+  binary_to_atom(<<Game/binary, <<"_game_private">>/binary>>, utf8);
+get_table_name(Game, false) ->
+  binary_to_atom(<<Game/binary, <<"_game_public">>/binary>>, utf8).
+
+%% @private
+get_opts(Nodes) ->
+  [
+    {type, set},
+    {ram_copies, Nodes},
+    {attributes, record_info(fields, gc_game)},
+    {index, [#gc_game.rules]},
+    {storage_properties, [{ets, [{read_concurrency, true}, {write_concurrency, true}]}]}
+  ].
