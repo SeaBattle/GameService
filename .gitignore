@@ -13,3 +13,4 @@ rel/example_project
 /.erlang.mk/
 /GameService.iml
 /GameService.d
+/gameservice.d

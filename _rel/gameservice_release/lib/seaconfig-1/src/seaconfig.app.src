@@ -1,0 +1,8 @@
+{application,seaconfig,
+             [{description,[]},
+              {vsn,"1"},
+              {registered,[]},
+              {modules,[]},
+              {applications,[kernel,stdlib,inets,jsone]},
+              {mod,{seaconfig_app,[]}},
+              {env,[]}]}.
