@@ -45,7 +45,7 @@ pull_game(GameId) ->
     {atomic, Map} when is_map(Map) -> {true, Map}
   end.
 
--spec pull_first_available_game(binary(), boolean()) -> atom().
+-spec pull_first_available_game(binary(), boolean()) -> {false, integer()} | {true, map()}.
 pull_first_available_game(Game, Private) ->
   Name = binary_to_existing_atom(compose_name(Game, Private), utf8),
   case mnesia:transaction(fun() -> do_pull_first_game(Name) end) of

@@ -12,9 +12,9 @@
 %% API
 -export([get_default_rules/2]).
 
--spec get_default_rules(binary(), binary()) -> proplists:proplist().
-get_default_rules(<<"seabattle">>, _) ->
-  [
+-spec get_default_rules(binary(), binary()) -> binary().
+get_default_rules(_, _) ->  %TODO get default rules from consul by service?
+  term_to_binary([
     {<<"shipNum">>, 10},
     {<<"ship1">>, 4},
     {<<"ship2">>, 3},
@@ -23,4 +23,4 @@ get_default_rules(<<"seabattle">>, _) ->
     {<<"hitPerTurn">>, 1},
     {<<"repeatOnHit">>, true},
     {<<"allowNearPlace">>, false}
-  ].
+  ]).

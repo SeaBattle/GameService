@@ -17,6 +17,7 @@
 -include("gs_headers.hrl").
 -include("gs_codes.hrl").
 
+-define(GAME, <<"testgame">>).
 
 all() ->
   [
@@ -32,7 +33,7 @@ init_per_suite(Config) ->
 init_per_testcase(_, Config) ->
   application:ensure_all_started(mnesia),
   meck:new(seaconfig),
-  meck:expect(seaconfig, get_value, fun(?GAMES) -> <<"testgame">> end),
+  meck:expect(seaconfig, get_value, fun(?GAMES) -> ?GAME end),
   gs_cache_man:init(),
   Config.
 
@@ -47,7 +48,7 @@ end_per_suite(Config) ->
 test_adding_game(_) ->
   ct:pal("------------------~p------------------~n", [test_adding_game]),
 
-  Game = <<"testgame">>,
+  Game = ?GAME,
   Vsn = <<"1.0.0">>,
   Uid = <<"some_uid">>,
   Rules = <<"default_rules">>,
@@ -63,7 +64,7 @@ test_adding_game(_) ->
 test_pulling_game(_) ->
   ct:pal("------------------~p------------------~n", [test_pulling_game]),
 
-  Game = <<"testgame">>,
+  Game = ?GAME,
   Vsn = <<"1.0.0">>,
   Uid = <<"some_uid">>,
   Rules = <<"default_rules">>,
@@ -82,7 +83,7 @@ test_pulling_game(_) ->
 test_double_pulling_game(_) ->
   ct:pal("------------------~p------------------~n", [test_double_pulling_game]),
 
-  Game = <<"testgame">>,
+  Game = ?GAME,
   Vsn = <<"1.0.0">>,
   Uid = <<"some_uid">>,
   Rules = <<"default_rules">>,
@@ -103,7 +104,7 @@ test_double_pulling_game(_) ->
 test_pull_first_available_game(_) ->
   ct:pal("------------------~p------------------~n", [test_pull_first_available_game]),
 
-  Game = <<"testgame">>,
+  Game = ?GAME,
   Vsn = <<"1.0.0">>,
   Uid = <<"some_uid">>,
   Rules = <<"default_rules">>,
