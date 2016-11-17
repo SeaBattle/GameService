@@ -18,10 +18,9 @@
 %% Write game to db
 create_game(Package = #{?GAME_HEAD := Game, ?VSN_HEAD := Vsn, ?UID_HEAD := Uid, ?TTL_HEAD := TTL}) ->
   Private = maps:get(?PRIVATE_HEAD, Package, false),
-  Gid = gs_game_id_man:generate_id(Game, Vsn, Private),
   Rules = get_rules(Package),
-  Res = ok =:= gs_cache_man:add_game(Game, Gid, Vsn, Uid, Rules, TTL, Private),
-  #{?RESULT_HEAD => Res, ?CODE_HEAD => ?OK, ?GAME_ID_HEAD => Gid}.
+  {ok, Gid} = gs_cache_man:add_game(Game, Vsn, Uid, Rules, TTL, Private),
+  #{?RESULT_HEAD => true, ?CODE_HEAD => ?OK, ?GAME_ID_HEAD => Gid}.
 
 join_game(#{?GAME_ID_HEAD := GameId, ?VSN_HEAD := _Vsn}) ->
   case gs_cache_man:pull_game(GameId) of
@@ -36,9 +35,8 @@ fast_play(Package = #{?GAME_HEAD := Game, ?UID_HEAD := Uid, ?TTL_HEAD := TTL, ?V
     {true, Game} when is_map(Game)->
       Game#{?RESULT_HEAD => true, ?CODE_HEAD => ?OK};
     {false, ?GAME_NOT_AVAILABLE} -> %no games to join. Should create new.
-      Gid = gs_game_id_man:generate_id(Game, Vsn, false),
       Rules = get_rules(Package),
-      ok = gs_cache_man:add_game(Game, Gid, Vsn, Uid, Rules, TTL, false),
+      {ok, Gid}  = gs_cache_man:add_game(Game, Vsn, Uid, Rules, TTL, false),
       #{?RESULT_HEAD => true, ?CODE_HEAD => ?WAITING_FOR_CONNECT, ?GAME_ID_HEAD => Gid}
   end.
 

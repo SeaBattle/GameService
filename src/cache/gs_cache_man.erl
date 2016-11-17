@@ -16,18 +16,21 @@
 -define(WAIT_FOR_TABLES, 60000).
 
 %% API
--export([add_game/7, init/0, pull_game/1, pull_first_available_game/2]).
+-export([add_game/6, init/0, pull_game/1, pull_first_available_game/2]).
 
 init() ->
-  GameString = seaconfig:get_value(?GAMES),
-  GameList = string:tokens(GameString, ","),
+  GameBin = seaconfig:get_value(?GAMES),
+  GameList = binary:split(GameBin, <<",">>, [global]),
   create_tables(GameList).
 
--spec add_game(binary(), binary(), binary(), binary(), proplists:proplist(), integer(), boolean()) ->
-  ok | {error, any()}.
-add_game(Game, Gid, Vsn, Uid, Rules, _TTL, Private) -> %TODO TTL?
+-spec add_game(binary(), binary(), binary(), proplists:proplist(), integer(), boolean()) ->
+  {ok, gs_game_id_man:game_id()} | {error, any()}.
+add_game(Game, Vsn, Uid, Rules, _TTL, Private) -> %TODO TTL?
+  Gid = gs_game_id_man:generate_id(Game, Vsn, Private),
   Name = binary_to_existing_atom(compose_name(Game, Private), utf8),
-  try mnesia:dirty_write(Name, #gc_game{gid = Gid, rules = Rules, uid = Uid, version = Vsn})
+  try mnesia:dirty_write(Name, #gc_game{gid = Gid, rules = Rules, uid = Uid, version = Vsn}) of
+    ok -> {ok, Gid};
+    Other -> {error, Other}
   catch
     _:Reason -> {error, Reason}
   end.
@@ -47,6 +50,7 @@ pull_first_available_game(Game, Private) ->
   Name = binary_to_existing_atom(compose_name(Game, Private), utf8),
   case mnesia:transaction(fun() -> do_pull_first_game(Name) end) of
     {aborted, _} -> {false, ?GAME_NOT_AVAILABLE};
+    {atomic, undefined} -> {false, ?GAME_STARTED};
     {atomic, Map} when is_map(Map) -> {true, Map}
   end.
 
@@ -57,7 +61,7 @@ do_pull_game(Name, Gid) ->
   case mnesia:read(Name, Gid, write) of
     [#gc_game{version = Vsn, uid = Uid, rules = Rules}] ->
       ok = mnesia:delete(Name, Gid, write),
-      #{?VSN_HEAD => Vsn, ?UID_HEAD => Uid, ?RULES_HEAD => Rules};
+      #{?VSN_HEAD => Vsn, ?UID_HEAD => Uid, ?RULES_HEAD => Rules, ?GAME_ID_HEAD => Gid};
     [] -> undefined
   end.
 
@@ -75,7 +79,7 @@ create_tables(GameList) ->
 
 %% @private
 create_table(Game, Nodes) ->
-  ProperName = string:strip(Game),
+  ProperName = binary:replace(Game, <<" ">>, <<>>, [global]),
   PrivateGameName = binary_to_atom(compose_name(ProperName, true), utf8),
   PublicGameName = binary_to_atom(compose_name(ProperName, false), utf8),
   ok = do_create_table(PrivateGameName, get_opts(Nodes)),
@@ -113,6 +117,7 @@ compose_name(Game, false) -> <<Game/binary, <<"_game_public">>/binary>>.
 %% @private
 get_opts(Nodes) ->
   [
+    {record_name, gc_game},
     {type, set},
     {ram_copies, Nodes},
     {attributes, record_info(fields, gc_game)},

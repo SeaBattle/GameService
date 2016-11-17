@@ -9,5 +9,7 @@ dep_uuid = git https://github.com/avtobiff/erlang-uuid.git v0.5.0
 dep_seautils = git https://github.com/SeaBattle/SeaUtils.git master
 dep_seaconfig = git https://github.com/SeaBattle/SeaConfig.git master
 
+TEST_DEPS = meck
+dep_meck = git https://github.com/eproxus/meck.git master
 
 include erlang.mk
