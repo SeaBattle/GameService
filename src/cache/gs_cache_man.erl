@@ -16,7 +16,7 @@
 -define(WAIT_FOR_TABLES, 60000).
 
 %% API
--export([add_game/7, init/0, pull_game/3, pull_first_available_game/2]).
+-export([add_game/7, init/0, pull_game/1, pull_first_available_game/2]).
 
 init() ->
   GameString = seaconfig:get_value(?GAMES),
@@ -32,10 +32,11 @@ add_game(Game, Gid, Vsn, Uid, Rules, _TTL, Private) -> %TODO TTL?
     _:Reason -> {error, Reason}
   end.
 
--spec pull_game(binary(), binary(), boolean()) -> {false, integer()} | {true, map()}.
-pull_game(Game, Gid, Private) ->
+-spec pull_game(gs_game_id_man:game_id()) -> {false, integer()} | {true, map()}.
+pull_game(GameId) ->
+  {Game, Private} = gs_game_id_man:get_game_n_type_from_id(GameId),
   Name = binary_to_existing_atom(compose_name(Game, Private), utf8),
-  case mnesia:transaction(fun() -> do_pull_game(Name, Gid) end) of
+  case mnesia:transaction(fun() -> do_pull_game(Name, GameId) end) of
     {aborted, _} -> {false, ?GAME_NOT_AVAILABLE};
     {atomic, undefined} -> {false, ?GAME_STARTED};
     {atomic, Map} when is_map(Map) -> {true, Map}
