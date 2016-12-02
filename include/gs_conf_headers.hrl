@@ -9,3 +9,5 @@
 -author("tihon").
 
 -define(GAMES, <<"game_service/games">>).
+-define(HTTP_PORT, <<"game_service/port">>).
+-define(HTTP_ACCEPTORS, <<"game_service/acceptors">>).
