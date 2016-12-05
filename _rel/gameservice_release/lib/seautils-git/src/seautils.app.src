@@ -1,6 +1,0 @@
-{application,seautils,
-             [{description,"sea utils library"},
-              {vsn,"git"},
-              {registered,[]},
-              {modules,[]},
-              {applications,[kernel,stdlib]}]}.

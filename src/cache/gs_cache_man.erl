@@ -18,10 +18,15 @@
 %% API
 -export([add_game/6, init/0, pull_game/1, pull_first_available_game/2]).
 
+-spec init() -> undefined | error | ok.
 init() ->
-  GameBin = seaconfig:get_value(?GAMES),
-  GameList = binary:split(GameBin, <<",">>, [global]),
-  create_tables(GameList).
+  case seaconfig:get_value(?GAMES) of
+    {ok, undefined} -> undefined;
+    {error, _} -> error;
+    {ok, GameBin} ->
+      GameList = binary:split(GameBin, <<",">>, [global]),
+      create_tables(GameList)
+  end.
 
 -spec add_game(binary(), binary(), binary(), proplists:proplist(), integer(), boolean()) ->
   {ok, gs_game_id_man:game_id()} | {error, any()}.

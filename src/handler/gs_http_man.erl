@@ -37,6 +37,6 @@ init_http_handler() ->
 %% @private
 get_default_value(Key, Default) ->
   case seaconfig:get_value(Key) of
-    {ok, Value} -> Value;
-    {error, _} -> Default
+    {ok, Value} when is_binary(Value)-> Value;
+    _ -> Default
   end.

@@ -26,4 +26,4 @@ WORKDIR /opt/app
 
 COPY . .
 RUN make
-CMD ["/opt/app/_rel/gameservice/bin/gameservice", "foreground"]
+CMD ["/opt/app/_rel/gameservice_release/bin/gameservice_release", "foreground"]
