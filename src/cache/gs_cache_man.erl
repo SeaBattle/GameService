@@ -21,9 +21,9 @@
 -spec init() -> undefined | error | ok.
 init() ->
   case seaconfig:get_value(?GAMES) of
-    {ok, undefined} -> undefined;
+    undefined -> undefined;
     {error, _} -> error;
-    {ok, GameBin} ->
+    GameBin ->
       GameList = binary:split(GameBin, <<",">>, [global]),
       create_tables(GameList)
   end.

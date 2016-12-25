@@ -15,8 +15,8 @@
 -export([init_http_handler/0]).
 
 init_http_handler() ->
-  PortBin = get_default_value(?HTTP_PORT, <<"8080">>),
-  AcceptorsBin = get_default_value(?HTTP_ACCEPTORS, <<"100">>),
+  PortBin = seaconfig:get_value(?HTTP_PORT, <<"8080">>),
+  AcceptorsBin = seaconfig:get_value(?HTTP_ACCEPTORS, <<"100">>),
   Dispatch = cowboy_router:compile(
     [
       {'_',
@@ -32,11 +32,3 @@ init_http_handler() ->
       [{port, binary_to_integer(PortBin)}],
       [{env, [{dispatch, Dispatch}]}]),
   ok.
-
-
-%% @private
-get_default_value(Key, Default) ->
-  case seaconfig:get_value(Key) of
-    {ok, Value} when is_binary(Value)-> Value;
-    _ -> Default
-  end.
